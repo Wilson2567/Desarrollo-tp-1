@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pomodoro" />
+  <meta name="theme-color" content="#D94444" />
+  <title>Pomodoro Timer</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── APP SHELL ────────────────────────────────── -->
+  <div id="app">
+
+    <!-- TIMER TAB -->
+    <section class="tab-panel active" id="tab-timer">
+      <header class="page-header">
+        <h1>Pomodoro</h1>
+        <div class="header-stats">
+          <span id="header-today">Hoy: <b>0</b></span>
+          <span id="header-total">Total: <b>0</b></span>
+        </div>
+      </header>
+
+      <!-- Phase selector -->
+      <div class="phase-selector" id="phase-selector">
+        <button class="phase-btn active" data-phase="work">
+          <span class="phase-icon">🧠</span> Estudio
+        </button>
+        <button class="phase-btn" data-phase="shortBreak">
+          <span class="phase-icon">☕</span> Corto
+        </button>
+        <button class="phase-btn" data-phase="longBreak">
+          <span class="phase-icon">🚶</span> Largo
+        </button>
+      </div>
+
+      <!-- Circular timer -->
+      <div class="timer-container">
+        <svg class="timer-ring" viewBox="0 0 220 220">
+          <circle class="ring-track" cx="110" cy="110" r="96"/>
+          <circle class="ring-progress" id="ring-progress" cx="110" cy="110" r="96"/>
+        </svg>
+        <div class="timer-inner">
+          <div class="timer-display" id="timer-display">25:00</div>
+          <div class="timer-phase-label" id="timer-phase-label">Estudio</div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="ctrl-btn secondary" id="btn-reset" title="Reiniciar">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+        </button>
+        <button class="ctrl-btn primary" id="btn-play">
+          <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="icon-pause hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="ctrl-btn secondary" id="btn-skip" title="Saltar">
+          <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
+        </button>
+      </div>
+
+      <!-- Toast notification -->
+      <div class="toast hidden" id="toast"></div>
+    </section>
+
+    <!-- HISTORY TAB -->
+    <section class="tab-panel" id="tab-history">
+      <header class="page-header">
+        <h1>Historial</h1>
+        <button class="header-action danger hidden" id="btn-clear-history">Borrar todo</button>
+      </header>
+
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-chip active" data-filter="all">Todos</button>
+        <button class="filter-chip" data-filter="work">🧠 Estudio</button>
+        <button class="filter-chip" data-filter="shortBreak">☕ Corto</button>
+        <button class="filter-chip" data-filter="longBreak">🚶 Largo</button>
+      </div>
+
+      <div class="history-list" id="history-list">
+        <div class="empty-state">
+          <div class="empty-icon">🕐</div>
+          <p class="empty-title">Sin sesiones aún</p>
+          <p class="empty-sub">Tus sesiones aparecerán aquí.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS TAB -->
+    <section class="tab-panel" id="tab-stats">
+      <header class="page-header">
+        <h1>Estadísticas</h1>
+      </header>
+
+      <div class="stats-scroll">
+        <!-- Summary cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="color:#D94444">✅</div>
+            <div class="stat-value" id="stat-total-work">0</div>
+            <div class="stat-label">Total Pomodoros</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="color:#F5A623">☀️</div>
+            <div class="stat-value" id="stat-today-work">0</div>
+            <div class="stat-label">Hoy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="color:#4A90D9">⏱️</div>
+            <div class="stat-value" id="stat-total-min">0</div>
+            <div class="stat-label">Minutos totales</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="color:#9B59B6">📋</div>
+            <div class="stat-value" id="stat-sessions">0</div>
+            <div class="stat-label">Sesiones totales</div>
+          </div>
+        </div>
+
+        <!-- Weekly chart -->
+        <div class="chart-card">
+          <h3 class="chart-title">Últimos 7 días</h3>
+          <div class="bar-chart" id="bar-chart"></div>
+        </div>
+
+        <!-- Phase breakdown -->
+        <div class="breakdown-card">
+          <h3 class="chart-title">Por tipo de sesión</h3>
+          <div id="breakdown-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS TAB -->
+    <section class="tab-panel" id="tab-settings">
+      <header class="page-header">
+        <h1>Ajustes</h1>
+      </header>
+
+      <div class="settings-scroll">
+        <div class="settings-group">
+          <div class="settings-label">Duración (minutos)</div>
+          <div class="settings-card">
+            <div class="setting-row">
+              <label>🧠 Estudio</label>
+              <div class="slider-wrap">
+                <input type="range" id="set-work" min="5" max="60" step="1" value="25" />
+                <span class="slider-val" id="val-work">25 min</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>☕ Descanso corto</label>
+              <div class="slider-wrap">
+                <input type="range" id="set-short" min="1" max="30" step="1" value="5" />
+                <span class="slider-val" id="val-short">5 min</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <label>🚶 Descanso largo</label>
+              <div class="slider-wrap">
+                <input type="range" id="set-long" min="5" max="60" step="1" value="15" />
+                <span class="slider-val" id="val-long">15 min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-label">Ciclo</div>
+          <div class="settings-card">
+            <div class="setting-row between">
+              <label>Descanso largo cada</label>
+              <div class="stepper">
+                <button class="step-btn" id="step-down">−</button>
+                <span id="step-val">4</span> pomodoros
+                <button class="step-btn" id="step-up">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-label">Automatización</div>
+          <div class="settings-card">
+            <div class="setting-row between">
+              <label>▶ Iniciar descansos auto</label>
+              <label class="toggle"><input type="checkbox" id="set-auto-breaks" /><span></span></label>
+            </div>
+            <div class="setting-row between">
+              <label>▶ Iniciar estudio auto</label>
+              <label class="toggle"><input type="checkbox" id="set-auto-work" /><span></span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-label">Sonido y notificaciones</div>
+          <div class="settings-card">
+            <div class="setting-row between">
+              <label>🔔 Sonido al completar</label>
+              <label class="toggle"><input type="checkbox" id="set-sound" checked /><span></span></label>
+            </div>
+            <div class="setting-row">
+              <button class="settings-btn" id="btn-notif-perm">Activar notificaciones</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-label">Datos</div>
+          <div class="settings-card">
+            <div class="setting-row">
+              <button class="settings-btn danger" id="btn-clear-all">🗑 Borrar todo el historial</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-label">Acerca de</div>
+          <div class="settings-card">
+            <div class="setting-row between muted">
+              <span>Versión</span><span>1.0.0</span>
+            </div>
+            <div class="setting-row between muted">
+              <span>Técnica</span><span>Francesco Cirillo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOTTOM TAB BAR -->
+    <nav class="tab-bar">
+      <button class="tab-item active" data-tab="timer">
+        <svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+        <span>Timer</span>
+      </button>
+      <button class="tab-item" data-tab="history">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span>Historial</span>
+      </button>
+      <button class="tab-item" data-tab="stats">
+        <svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z"/></svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab-item" data-tab="settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+        <span>Ajustes</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
